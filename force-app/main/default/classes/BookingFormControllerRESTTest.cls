@@ -3178,6 +3178,35 @@ static void testGet_GetChildrensForFamily_Endpoint() {
     Test.stopTest();
 }
 
+@isTest
+static void testGet_GetAllBookings_Endpoint() {
+    Account a = createFamilyAccount('allbookings@test.com', 'pass789', true);
+
+    RestRequest req  = new RestRequest();
+    RestResponse res = new RestResponse();
+    req.requestURI  = '/services/apexrest/bookingFormControllerREST/getAllBookings';
+    req.httpMethod  = 'GET';
+    req.params.put('accountId', a.Id);
+    RestContext.request  = req;
+    RestContext.response = res;
+
+    Test.startTest();
+    BookingFormControllerREST.Get();
+    Test.stopTest();
+    System.assertNotEquals(null, res.responseBody);
+}
+
+@isTest
+static void testGetAllBookings_Direct() {
+    Account a = createFamilyAccount('allbookingsdir@test.com', 'pass789', true);
+    Test.startTest();
+    String result = BookingFormControllerREST.getAllBookings(a.Id);
+    String emptyResult = BookingFormControllerREST.getAllBookings('');
+    Test.stopTest();
+    System.assertNotEquals(null, result);
+    System.assertNotEquals(null, emptyResult);
+}
+
 // ─────────────────────────────────────────────────────────────────
 // 16. GET /validateSession – via Get() dispatch (valid session)
 // ─────────────────────────────────────────────────────────────────
