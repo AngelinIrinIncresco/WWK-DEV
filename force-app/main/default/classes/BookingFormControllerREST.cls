@@ -269,11 +269,10 @@ String accountId = (String) requestBodyMap.get('accountId'); */
                 
                 getChildrensForFamily(accountId);
             }
-            when 'getAllBookings'{
+            
+            when 'getAllBookings', 'getBookingsForFamily'{
                 RestRequest req = RestContext.request;
-                Map<String, String> queryParams = req != null ? req.params : new Map<String, String>();
-                String accountId = queryParams != null ? queryParams.get('accountId') : null;
-                
+                String accountId = req.params != null ? req.params.get('accountId') : null;
                 getAllBookings(accountId);
             }
            
@@ -415,19 +414,23 @@ getHotelClubsAvailable(selectedHotelId,checkInDate,checkOutDate,birthDate);
 String email = (String) requestBodyMap.get('email'); */
                 checkEmail(email);
             }
+            
+            
+            
+            
+            
+            
+            
+            
             when else {
-                RestResponse res = RestContext.response;
-                if(res == null) {
-                    res = new RestResponse();
-                    RestContext.response = res;
-                }
+                RestResponse res = RestContext.response != null ? RestContext.response : new RestResponse();
+                RestContext.response = res;
                 res.statusCode = 404;
-                Map<String, Object> notFoundResponse = new Map<String, Object>{
-                    'isSuccess' => false,
+                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
                     'success' => false,
+                    'isSuccess' => false,
                     'message' => 'Endpoint not found: ' + endpoint
-                };
-                res.responseBody = Blob.valueOf(JSON.serialize(notFoundResponse));
+                }));
             }
         }
     }
@@ -2536,65 +2539,58 @@ Update recordsToUpdate;
         return JSON.serialize(childrenRecordsForFamilyResponse);
         
     }
-
-    public static String getAllBookings(String accountId) {
+    
+    public static void getAllBookings(String accountId) {
         RestResponse res = RestContext.response;
         if (res == null) {
             res = new RestResponse();
             RestContext.response = res;
         }
 
+        if (String.isNotBlank(accountId)) {
+            accountId = accountId.trim();
+        }
+
         if (String.isBlank(accountId)) {
-            Map<String, Object> errorMap = new Map<String, Object>{
-                'isSuccess' => false,
-                'success' => false,
-                'message' => 'Account ID parameter is required.'
-            };
             res.statusCode = 400;
-            String errorJson = JSON.serialize(errorMap);
-            res.responseBody = Blob.valueOf(errorJson);
-            return errorJson;
+            res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+                'success' => false,
+                'isSuccess' => false,
+                'message' => 'Missing required query parameter: accountId'
+            }));
+            return;
         }
 
         try {
-            List<Opportunity> bookings = [
-                SELECT Id, Name, Auto_Booking_Ref__c, StageName, Start_Date__c, End_Date__c,
-                       Hotel__c, Hotel_Name__c, Amount, Total_Club_Cost__c, Booking_Fee__c,
-                       CurrencyIsoCode, CreatedDate,
-                       (SELECT Id, Status__c, Cost__c, Club_Date__c, Kids_Club__c, Club_Time__c, Club_Type__c 
-                        FROM Booking_Line_Items__r WHERE Status__c != 'Cancelled'),
-                       (SELECT Id, Name, Status__c, SB_Cost__c, SB_Date__c, SB_Service__c, SB_From_Time__c, SB_To_Time__c, SB_Hours__c 
-                        FROM Service_Bookings__r WHERE Status__c != 'Cancelled')
+            List<Opportunity> bookingsList = [
+                SELECT Id, Name, Auto_Booking_Ref__c, Booking_Reference_number__c,
+                       StageName, Start_Date__c, End_Date__c, Hotel__c, Hotel_Name__c,
+                       Amount, CurrencyIsoCode, Total_Club_Cost__c, Total_Discount__c, CreatedDate
                 FROM Opportunity
                 WHERE AccountId = :accountId
                 ORDER BY CreatedDate DESC
             ];
 
             Map<String, Object> responseMap = new Map<String, Object>{
-                'isSuccess' => true,
                 'success' => true,
-                'message' => bookings.isEmpty() ? 'No bookings found' : 'Bookings retrieved successfully',
-                'recordsList' => bookings,
-                'bookings' => bookings,
-                'Data' => bookings
+                'isSuccess' => true,
+                'accountId' => accountId,
+                'totalBookings' => bookingsList.size(),
+                'recordsList' => bookingsList
             };
+
             res.statusCode = 200;
-            String jsonResult = JSON.serialize(responseMap);
-            res.responseBody = Blob.valueOf(jsonResult);
-            return jsonResult;
+            res.responseBody = Blob.valueOf(JSON.serialize(responseMap));
         } catch (Exception e) {
-            Map<String, Object> errorMap = new Map<String, Object>{
-                'isSuccess' => false,
-                'success' => false,
-                'message' => 'Error retrieving bookings: ' + e.getMessage()
-            };
             res.statusCode = 500;
-            String errorJson = JSON.serialize(errorMap);
-            res.responseBody = Blob.valueOf(errorJson);
-            return errorJson;
+            res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+                'success' => false,
+                'isSuccess' => false,
+                'message' => 'Error retrieving bookings: ' + e.getMessage()
+            }));
         }
     }
-
+    
     public static Response getCustomLabels() {
         RestResponse res = RestContext.response;
         Response result; 

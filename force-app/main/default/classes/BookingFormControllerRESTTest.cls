@@ -3178,9 +3178,21 @@ static void testGet_GetChildrensForFamily_Endpoint() {
     Test.stopTest();
 }
 
+// ─────────────────────────────────────────────────────────────────
+// 15b. GET /getAllBookings – via Get() dispatch (success)
+// ─────────────────────────────────────────────────────────────────
 @isTest
-static void testGet_GetAllBookings_Endpoint() {
-    Account a = createFamilyAccount('allbookings@test.com', 'pass789', true);
+static void testGet_GetAllBookings_Success() {
+    Account a = createFamilyAccount('allbookings@test.com', 'passall', true);
+    Opportunity opp = new Opportunity(
+        Name          = 'Test Booking Opp',
+        StageName     = 'Confirmed',
+        CloseDate     = Date.today(),
+        AccountId     = a.Id,
+        Start_Date__c = Date.today(),
+        End_Date__c   = Date.today().addDays(3)
+    );
+    insert opp;
 
     RestRequest req  = new RestRequest();
     RestResponse res = new RestResponse();
@@ -3193,18 +3205,72 @@ static void testGet_GetAllBookings_Endpoint() {
     Test.startTest();
     BookingFormControllerREST.Get();
     Test.stopTest();
-    System.assertNotEquals(null, res.responseBody);
+
+    System.assertEquals(200, res.statusCode);
+    System.assert(res.responseBody != null);
+    Map<String, Object> respMap = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+    System.assertEquals(true, respMap.get('success'));
+    System.assertEquals(1L, (Long) respMap.get('totalBookings'), 'totalBookings count should be 1');
 }
 
+// ─────────────────────────────────────────────────────────────────
+// 15c. GET /getBookingsForFamily – via alias endpoint
+// ─────────────────────────────────────────────────────────────────
 @isTest
-static void testGetAllBookings_Direct() {
-    Account a = createFamilyAccount('allbookingsdir@test.com', 'pass789', true);
+static void testGet_GetAllBookings_AliasEndpoint() {
+    Account a = createFamilyAccount('aliasbookings@test.com', 'passalias', true);
+
+    RestRequest req  = new RestRequest();
+    RestResponse res = new RestResponse();
+    req.requestURI  = '/services/apexrest/bookingFormControllerREST/getBookingsForFamily';
+    req.httpMethod  = 'GET';
+    req.params.put('accountId', a.Id);
+    RestContext.request  = req;
+    RestContext.response = res;
+
     Test.startTest();
-    String result = BookingFormControllerREST.getAllBookings(a.Id);
-    String emptyResult = BookingFormControllerREST.getAllBookings('');
+    BookingFormControllerREST.Get();
     Test.stopTest();
-    System.assertNotEquals(null, result);
-    System.assertNotEquals(null, emptyResult);
+
+    System.assertEquals(200, res.statusCode);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 15d. GET /getAllBookings – missing accountId (HTTP 400)
+// ─────────────────────────────────────────────────────────────────
+@isTest
+static void testGet_GetAllBookings_MissingAccountId() {
+    RestRequest req  = new RestRequest();
+    RestResponse res = new RestResponse();
+    req.requestURI  = '/services/apexrest/bookingFormControllerREST/getAllBookings';
+    req.httpMethod  = 'GET';
+    RestContext.request  = req;
+    RestContext.response = res;
+
+    Test.startTest();
+    BookingFormControllerREST.Get();
+    Test.stopTest();
+
+    System.assertEquals(400, res.statusCode);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 15e. GET /unknownEndpoint – fallback when else (HTTP 404)
+// ─────────────────────────────────────────────────────────────────
+@isTest
+static void testGet_UnknownEndpoint_Fallback() {
+    RestRequest req  = new RestRequest();
+    RestResponse res = new RestResponse();
+    req.requestURI  = '/services/apexrest/bookingFormControllerREST/unknownTestRoute';
+    req.httpMethod  = 'GET';
+    RestContext.request  = req;
+    RestContext.response = res;
+
+    Test.startTest();
+    BookingFormControllerREST.Get();
+    Test.stopTest();
+
+    System.assertEquals(404, res.statusCode);
 }
 
 // ─────────────────────────────────────────────────────────────────
