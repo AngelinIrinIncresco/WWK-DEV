@@ -1514,7 +1514,8 @@ Set<Id> addedParentIds = new Set<Id>();
                                       doesChildTakeAnySortOfMedication__c, DoesChildHaveAllergies__c,Signs_Symptoms__c,DetailChildAllergies__c,DetailChildAdditionalNeeds__c,C_DetailChildMedication__c,Treatment__c,Time_to_be_administered__c,Medication_Required__c,Dose__c,How_can_the_team_support_your_child__c,
                                       DoesChildHaveMedicalOrAdditionalNeeds__c, childParticipateInClubActivities__c,
                                       ChildRequireSwimmingAid__c,childCollectPersonName__c, childCollectPersonPassword__c, agreeForPhotographAndFilmingForPublicity__c
-                                      FROM Child__c WHERE Parent__c=:oppRecord.AccountId];
+                                      FROM Child__c WHERE Parent__c=:oppRecord.AccountId
+                                      AND Id IN (SELECT Child__c FROM Booking_Child__c WHERE Existing_Bookings__c = :bookingId AND Is_Active__c = true)];
         
        System.debug('childRecord nikhil'+childRecord);
                                                         List<Child__c> recordsToAdd = new List<Child__c>();

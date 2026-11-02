@@ -4895,4 +4895,67 @@ static void testCreateBookingDTO_OptedOutEmail_True() {
         System.assertEquals(0.0, promo.discount);
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    //  Verify that getAvailableData only returns children linked to
+    //  the specific booking via Booking_Child__c (not all family children)
+    // ═══════════════════════════════════════════════════════════════════
+    @isTest
+    static void testGetAvailableData_FiltersChildrenByBookingChild() {
+        Account hotel  = makeHotel('Filter Hotel');
+        Account family = makeFamily('filterchild@test.com');
+
+        Opportunity opp = new Opportunity(
+            Name          = 'Filter Child Opp',
+            StageName     = 'Confirmed',
+            CloseDate     = Date.today(),
+            AccountId     = family.Id,
+            Hotel__c      = hotel.Id,
+            Start_Date__c = Date.today().addDays(5),
+            End_Date__c   = Date.today().addDays(10)
+        );
+        insert opp;
+
+        Child__c linkedChild = new Child__c(
+            First_Name__c = 'Linked',
+            Last_Name__c  = 'Child',
+            Parent__c     = family.Id,
+            DOB__c        = Date.today().addYears(-5)
+        );
+        Child__c unlinkedChild = new Child__c(
+            First_Name__c = 'Unlinked',
+            Last_Name__c  = 'Child',
+            Parent__c     = family.Id,
+            DOB__c        = Date.today().addYears(-8)
+        );
+        insert new List<Child__c>{ linkedChild, unlinkedChild };
+
+        Booking_Child__c bc = new Booking_Child__c(
+            Existing_Bookings__c = opp.Id,
+            Child__c             = linkedChild.Id,
+            Is_Active__c         = true
+        );
+        insert bc;
+
+        RestRequest req  = new RestRequest();
+        RestResponse res = new RestResponse();
+        RestContext.request  = req;
+        RestContext.response = res;
+
+        Test.startTest();
+        String result = BookingFormControllerREST.getAvailableData(opp.Id);
+        Test.stopTest();
+
+        System.assert(String.isNotBlank(result), 'Expected non-blank result');
+        BookingFormDTO dto = (BookingFormDTO) JSON.deserialize(result, BookingFormDTO.class);
+        System.assertNotEquals(null, dto.childsList, 'childsList should not be null');
+
+        Set<String> returnedChildIds = new Set<String>();
+        for (BookingFormDTO.ChildDTO c : dto.childsList) {
+            returnedChildIds.add(c.Id);
+        }
+
+        System.assert(returnedChildIds.contains(linkedChild.Id), 'Linked child should be included in childsList');
+        System.assert(!returnedChildIds.contains(unlinkedChild.Id), 'Unlinked child should NOT be included in childsList');
+    }
+
 }
