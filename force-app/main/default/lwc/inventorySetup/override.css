@@ -1,0 +1,4 @@
+.slds-checkbox_toggle [type=checkbox]+.slds-checkbox_faux_container{
+    position: absolute;
+    left: 200px;
+}

@@ -1,0 +1,87 @@
+.half-width {
+    width: 50%; /* Set the width to 50% of the container */
+}
+
+
+.container {
+    padding: 20px;
+}
+
+.input-section {
+    margin-bottom: 20px;
+}
+
+.input-group {
+    display: flex;
+    gap: 20px;
+}
+
+.master-label {
+    margin-bottom: 20px;
+}
+
+.days-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.day-input {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.data-table {
+    margin-bottom: 20px;
+}
+
+.card {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.record-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.field {
+    width: 150px;
+}
+
+.add-row-button {
+    text-align: right;
+}
+
+.footer-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+
+
+
+
+
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+.custom-button {
+    width: 100px; 
+    height: 10px; 
+   
+}
+
+.dropdown-content {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    z-index: 1;
+    margin-top: 5px; 
+    padding: 10px; 
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    max-height: 200px; 
+    overflow-y: auto;
+}

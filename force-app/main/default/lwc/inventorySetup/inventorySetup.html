@@ -1,0 +1,304 @@
+<template>
+    <lightning-quick-action-panel header="Inventory Setup">
+        <div class="slds-p-around_none slds-m-top_x-small slds-m-bottom_medium slds-m-horizontal_none modalBodyy">
+            
+            <div class="slds-m-around_medium half-width">
+                <h1 style="font-size: larger; margin-bottom:10px;">Club Details</h1>
+                <lightning-input label="Club Name" value={clubName} onchange={handleClubNameChange}></lightning-input>
+                <lightning-input type="date" label="Start Date" value={startDate} min={todaysDate} onchange={handleStartDateChange}></lightning-input>
+                <lightning-input type="date" label="End Date" value={endDate} onchange={handleEndDateChange}></lightning-input>
+               
+               
+            </div>
+    
+                    <div class="slds-m-around_medium">
+                        <label class="slds-form-element__label">Opening Days</label>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Monday" label="Monday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Tuesday" label="Tuesday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Wednesday" label="Wednesday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Thursday" label="Thursday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Friday" label="Friday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Saturday" label="Saturday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="slds-p-around_medium">
+                                <lightning-input type="toggle" name="Sunday" label="Sunday" onchange={updateOpeningDaysValues}></lightning-input>
+                            </div>
+                        </div>
+                    </div>
+          
+             <lightning-card class="half-width" title="Age Range">
+                 
+                 <lightning-button label="Add age range/staff ratio" slot="actions" icon-name="utility:add" onclick={addRowForAge}></lightning-button>
+                <div class="slds-m-around_medium">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered" aria-labelledby="element-with-table-label other-element-with-table-label">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th class="" scope="col">
+                                    <div class="slds-truncate" title="From Age">From Age (months)</div>
+                                </th>
+                                <th class="" scope="col">
+                                    <div class="slds-truncate" title="To Age">To Age (months)</div>
+                                </th>
+                                <!-- <th class="" scope="col">
+                                    <div class="slds-truncate" title="Ratio">Ratio</div>
+                                </th> -->
+                                <!-- <th class="" scope="col">
+                                    <div class="slds-truncate" title="Staff">Staff</div>
+                                </th> -->
+                              
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={ageStaffRecords} for:item="obj">
+                                <tr class="inputRows" key={obj.Id}>
+                                    <th  scope="row">
+                                        <lightning-input type="number" class="fields" variant="label-hidden" label="From Age" name="From_Age" value={obj.From_Age} data-id={obj.Id} onchange={updateValuesForAgeData}></lightning-input>
+                                    </th>
+                                    <td >
+                                        <lightning-input type="number" class="fields" variant="label-hidden" label="To Age" name="To_Age" value={obj.To_Age} data-id={obj.Id} onchange={updateValuesForAgeData}></lightning-input>
+                                    </td>
+                                    <!-- <td >
+                                       <lightning-input type="number" class="fields" variant="label-hidden" label="Ratio" name="Ratio" value={obj.Ratio} data-id={obj.Id} onchange={updateValuesForAgeData}></lightning-input>
+                                    </td> -->
+                                    <!-- <td >
+                                        <lightning-input type="number" class="fields" variant="label-hidden" label="Staff" name="Staff" value={obj.Staff} data-id={obj.Id} onchange={updateValuesForAgeData}></lightning-input>
+                                     </td> -->
+                                  
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                
+            </lightning-card>
+            <lightning-card class="half-width" title="Sessions Schedule">
+                 
+                <lightning-button label="Add session" slot="actions" icon-name="utility:add" onclick={addRowForSession}></lightning-button>
+               <div class="slds-m-around_medium">
+                   <table class="slds-table slds-table_cell-buffer slds-table_bordered" aria-labelledby="element-with-table-label other-element-with-table-label">
+                       <thead>
+                           <tr class="slds-line-height_reset">
+                               <th class="" scope="col">
+                                   <div class="slds-truncate" title="Session Name">Session Name</div>
+                               </th>
+                               <th class="" scope="col">
+                                   <div class="slds-truncate" title="Start Time">Start Time</div>
+                               </th>
+                               <th class="" scope="col">
+                                   <div class="slds-truncate" title="End Time">End Time</div>
+                               </th>
+                               <th class="" scope="col">
+                                <div class="slds-truncate" title="End Time">Ratio</div>
+                            </th>
+                            <th class="" scope="col">
+                                <div class="slds-truncate" title="Staff">Staff</div>
+                            </th>
+                               <th class="" scope="col">
+                                   <div class="slds-truncate" title="Cost">Cost</div>
+                               </th>
+                             
+                           </tr>
+                       </thead>
+                       <tbody>
+                           <template for:each={sessionRecords} for:item="obj">
+                               <tr class="inputRows" key={obj.Id}>
+                                   <td  scope="row">
+                                       <!-- <lightning-input type="text" class="fields" variant="label-hidden" label="Session Name" name="Session_Name" value={obj.Session_Name} data-id={obj.Id} onchange={updateValuesForSessionData}></lightning-input> -->
+                                       <lightning-combobox
+    class="fields"
+    variant="label-hidden"
+    label="Session Name"
+    name="Session_Name"
+    value={obj.Session_Name}
+    data-id={obj.Id}
+    options={sessions}
+    onchange={updateValuesForSessionData}>
+</lightning-combobox>
+
+                                   </td>
+                                   <td  scope="row">
+                                    <lightning-input type="time" class="fields" variant="label-hidden" label="Start Time" name="Start_Time" value={obj.Start_Time} data-id={obj.Id} onchange={updateValuesForSessionData}></lightning-input>
+                                </td>
+                                <td  scope="row">
+                                    <lightning-input type="time" class="fields" variant="label-hidden" label="End Time" name="End_Time" value={obj.End_Time} data-id={obj.Id} onchange={updateValuesForSessionData}></lightning-input>
+                                </td>
+                                <td >
+                                    <lightning-input type="number" class="fields" variant="label-hidden" label="Ratio" name="Ratio" value={obj.Ratio} data-id={obj.Id} onchange={updateValuesForSessionData}></lightning-input>
+                                 </td>
+                                 <td >
+                                    <lightning-input type="number" class="fields" variant="label-hidden" label="Staff" name="Staff" value={obj.Staff} data-id={obj.Id} onchange={updateValuesForSessionData}></lightning-input>
+                                 </td>
+                               
+                                   <!-- <td>
+                                    <lightning-combobox
+                                
+                                    class="dropdownLabel"
+            name="Start_Time"
+            data-id={obj.Id}
+            value={obj.Start_Time}
+            placeholder="Start Time"
+            options={options}
+            onchange={updateValuesForSessionData} ></lightning-combobox>
+                                </td>
+                                <td>
+                                    <lightning-combobox
+                    
+                                    class="dropdownLabel"
+            name="End_Time"
+            data-id={obj.Id}
+            value={obj.End_Time}
+            placeholder="Start Time"
+            options={options}
+            onchange={updateValuesForSessionData} ></lightning-combobox>
+                                </td> -->
+
+                                
+                                   <td >
+                                       <lightning-input type="number" class="fields" variant="label-hidden" label="Cost" name="Cost" value={obj.Cost} data-id={obj.Id} onchange={updateValuesForSessionData}></lightning-input>
+                                    </td>
+                                 
+                               </tr>
+                           </template>
+                       </tbody>
+                   </table>
+               </div>
+               
+           </lightning-card>
+
+           <lightning-card class="half-width" title="Discounts">
+                 
+            <lightning-button label="Add Discount" slot="actions" icon-name="utility:add" onclick={addRowForDiscount}></lightning-button>
+           <div class="slds-m-around_medium">
+               <table class="slds-table slds-table_cell-buffer slds-table_bordered" aria-labelledby="element-with-table-label other-element-with-table-label">
+                   <thead>
+                       <tr class="slds-line-height_reset">
+                           <th class="" scope="col">
+                               <div class="slds-truncate" title="From Date">From Date</div>
+                           </th>
+                           <th class="" scope="col">
+                               <div class="slds-truncate" title="To Date">To Date</div>
+                           </th>
+                           <th class="" scope="col">
+                               <div class="slds-truncate" title="Type">Type</div>
+                           </th>
+                           <th class="" scope="col">
+                               <div class="slds-truncate" title="Amount">Amount</div>
+                           </th>
+                           <th class="" scope="col">
+                            <div class="slds-truncate" title="Min No">Min No</div>
+                        </th>
+                        <th class="" scope="col">
+                            <div class="slds-truncate" title="Session Types">Session Type</div>
+                        </th>
+                         
+                       </tr>
+                   </thead>
+                   <tbody>
+                       <template for:each={discountRecords} for:item="obj">
+                           <tr class="inputRows" key={obj.Id}>
+                               <th scope="row">
+                                   <lightning-input type="date" class="fields" variant="label-hidden" label="From Date" name="From_Date" min={todaysDate} value={obj.From_Date} data-id={obj.Id} onchange={updateValuesForDiscountData}></lightning-input>
+                               </th>
+                               <td >
+                                   <lightning-input type="date" class="fields" variant="label-hidden" label="To Date" name="To_Date" min={todaysDate} value={obj.To_Date} data-id={obj.Id} onchange={updateValuesForDiscountData}></lightning-input>
+                               </td>
+                               <td >
+                                  <!-- <lightning-input type="text" class="fields" variant="label-hidden" label="Type" name="Type" value={obj.Type} data-id={obj.Id} onchange={updateValuesForDiscountData}></lightning-input> -->
+                                  <lightning-combobox
+                                  class="fields"
+                                  variant="label-hidden"
+                                  label="Type"
+                                  name="Type"
+                                  value={obj.Type}
+                                  data-id={obj.Id}
+                                  options={typeOptions}
+                                  onchange={updateValuesForDiscountData}>
+                              </lightning-combobox>
+                               </td>
+                               <td >
+                                   <lightning-input type="number" class="fields" variant="label-hidden" label="Amount" name="Amount" value={obj.Amount} data-id={obj.Id} onchange={updateValuesForDiscountData}></lightning-input>
+                                </td>
+                                <td>
+                                    <lightning-input type="number" class="fields" variant="label-hidden" label="Min No" name="Min_No" value={obj.Min_No} data-id={obj.Id} onchange={updateValuesForDiscountData}></lightning-input>
+                                 </td>
+
+                                <!-- <td >
+                                    <lightning-input type="text" class="fields" variant="label-hidden" label="Session Types" name="Session_Types" value={obj.Session_Types} data-id={obj.Id} onchange={updateValuesForDiscountData}></lightning-input>
+                                 </td> -->
+
+                                 <td>
+                                    <template if:true={isVertical}>
+                                 <lightning-combobox
+                                 class="fields"
+                                 variant="label-hidden"
+                                 label="Session Types"
+                                 name="Session_Types"
+                                 value={obj.Session_Types}
+                                 data-id={obj.Id}
+                                 options={options}
+                                 onchange={updateValuesForDiscountData}>
+                             </lightning-combobox>
+                            </template>
+                             
+                            <template if:true={isHorizontal}>
+                                <div class="dropdown-container">
+                                    <lightning-button label="Sessions" onclick={toggleDropdown} variant="neutral" icon-name="utility:down" icon-position="right"></lightning-button>
+                                    <template if:true={showDropdown}>
+                                        <div class="dropdown-content">
+                                            <lightning-checkbox-group
+                                                name="Session_Types"
+                                                options={options}
+                                                value={selectedOptions}
+                                                onchange={handleCheckboxChange}
+                                               
+                                            ></lightning-checkbox-group>
+                                        </div>
+                                    </template>
+                                </div>
+                                </template>
+              
+                            
+                        
+                            
+                            </td>
+                             
+                           </tr>
+                       </template>
+                   </tbody>
+               </table>
+           </div>
+           
+       </lightning-card>
+        </div>
+        <div slot="footer" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <lightning-button variant="neutral" label="Cancel" onclick={closeAction}></lightning-button>
+            <lightning-button variant="brand" label="Save" onclick={handleSaveAction} disabled={isDisable}></lightning-button>
+            <lightning-button variant="brand" label="Save and Publish" onclick={handlePublishAction}></lightning-button>
+        </div>
+        
+    </lightning-quick-action-panel>
+</template>
