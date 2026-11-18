@@ -56,34 +56,39 @@ sequenceDiagram
 
 ## 3. Root Cause Analysis in Legacy Code
 
-The legacy system was architected with an `isFirstTime` flag, but was left incomplete:
+The issue of emails still firing on existing booking edits stemmed from two interconnected flaws:
 
-1. **In `BookingFormControllerREST.cls` (Line 2102):**
+1. **In `BookingConfirmationHelper.cls` (Passive Parameter):**
+   The parameter `Boolean isFirstTime` was defined in the method signature, but **never evaluated in the method body**. As a result, `Messaging.sendEmail(...)` executed unconditionally on every invocation.
+   
+2. **In `BookingFormControllerREST.cls` (Caller Boolean Inversion & Strict Null Condition):**
+   Lines 2077–2083 had:
    ```apex
+   Boolean isInsert = false;
+   if(!String.isBlank(pageParameters.bookingId) && !String.isBlank(bookingDTORecord.id)){
+       isInsert = true;
+   }
+   ...
    strConfirmationText = BookingConfirmationHelper.sendEmail(saveBookingResponse.recordId, !isInsert, true);
    ```
-   - On a new booking: `!isInsert` passed `true`.
-   - On an existing booking edit: `!isInsert` passed `false`.
-
-2. **In `BookingConfirmationHelper.cls` (Line 12):**
-   ```apex
-   public static String sendEmail(String opportunityId, Boolean isFirstTime, Boolean isGuestUser) {
-   ```
-   The parameter `Boolean isFirstTime` was defined in the method signature, but **never evaluated in the method body**. As a result, `Messaging.sendEmail(...)` executed unconditionally on every invocation.
+   - When editing a booking, the frontend passes `pageParameters.bookingId` and sets `editMode = true`, but leaves `bookingDTORecord.id` null.
+   - Because the code required BOTH `pageParameters.bookingId` AND `bookingDTORecord.id` (`&&`), `isInsert` remained `false`.
+   - At line 2102, `!isInsert` evaluated to `!false` = `true`.
+   - Therefore, the controller passed `isFirstTime = true` on existing edits!
 
 ---
 
-## 4. Exact File & Line-by-Line Changes
+## 4. Exact File & Line-by-Line Changes (Two-Layer Fail-Safe)
 
 ### File 1: `force-app/main/default/classes/BookingConfirmationHelper.cls`
-- **Location:** Lines 15–20
-- **Action:** Added guard condition at the beginning of `sendEmail()`.
+- **Location:** Lines 15–40
+- **Action:** Added fast-exit guard AND database-level secondary safeguard checking `CreatedDate`.
 - **Code:**
 ```apex
 public static String sendEmail(String opportunityId, Boolean isFirstTime, Boolean isGuestUser) { 
     system.debug('opportunityId::'+opportunityId);
 
-    // 🔒 Do not send confirmation email when an existing booking is edited via booking engine
+    // 🔒 Guard 1: Fast-exit if caller explicitly marked this as an existing booking from guest/booking engine
     if (isFirstTime != null && !isFirstTime && isGuestUser) {
         System.debug('Confirmation email skipped: existing booking edit. OpportunityId: ' + opportunityId);
         return 'Email skipped: Booking edit does not require guest notification.';
@@ -91,18 +96,53 @@ public static String sendEmail(String opportunityId, Boolean isFirstTime, Boolea
 
     String response;
     try {
-        ...
+        SiteUrl__c siteurl = SiteUrl__c.getInstance();
+        if(String.isNotBlank(opportunityId)) {
+            List<Opportunity> bookingRecord = [SELECT Id, Name, Childcare_Manager_Email__c, Auto_Booking_Ref__c,Account.Name, Account.PersonEmail, Hotel__r.Name, Account.Password__c, Account.A_Password__c, Account.Has_user_changed_password__c, O_Booking_Type__c, O_Contact__r.Email, CreatedDate 
+                                                FROM Opportunity 
+                                                WHERE Id = :opportunityId
+                                                LIMIT 1];
+            
+            if(bookingRecord.size() > 0) {
+                System.debug('bookingRecord.get(0).Id::' + bookingRecord.get(0).Id);
+
+                // 🔒 Guard 2: Database record safeguard - if the booking was created in the past, it is an edit
+                Boolean isPreExistingBooking = bookingRecord.get(0).CreatedDate != null 
+                    && bookingRecord.get(0).CreatedDate < Datetime.now().addMinutes(-1);
+                if (isPreExistingBooking && isGuestUser) {
+                    System.debug('Confirmation email skipped: pre-existing booking record created ' + bookingRecord.get(0).CreatedDate + '. OpportunityId: ' + opportunityId);
+                    return 'Email skipped: Booking edit does not require guest notification.';
+                }
 ```
-- **Rationale:**  
-  - Evaluates `isFirstTime` and `isGuestUser`.
-  - When an edit occurs via the booking API (`isFirstTime = false` and `isGuestUser = true`), execution immediately returns without constructing or sending an email.
-  - When an admin manually clicks the send action in Salesforce (`isGuestUser = false`), the guard does not block, allowing manual resends.
 
 ---
 
-### File 2: `force-app/main/default/classes/BookingConfirmationControllerTest.cls`
-- **Location:** Lines 77–104
-- **Action:** Added test method `testBookingConfirmationHelperEdgeCases()`.
+### File 2: `force-app/main/default/classes/BookingFormControllerREST.cls`
+- **Location:** Lines 2077–2083 and Line 2102
+- **Action:** Fixed existing booking detection to check `pageParameters.bookingId`, `bookingDTORecord.id`, or `editMode`.
+- **Code:**
+```apex
+Boolean isExistingBooking = false;
+
+try {
+    if(!String.isBlank(bookingDTORecord.familyDetails.personEmail)) {
+        if(!String.isBlank(pageParameters.bookingId) || !String.isBlank(bookingDTORecord.id) || (bookingDTORecord.editMode != null && bookingDTORecord.editMode)){
+            isExistingBooking = true;
+        }
+        
+        saveBookingResponse = insertBookingRecord(pageParameters, bookingDTORecord, strHotelId, stripePaymentInfo, resp);
+        saveBookingResponse.wwkNo = [SELECT Id,Name FROM Opportunity WHERE Id=:saveBookingResponse.recordId].Name;
+    }
+...
+if(!String.isBlank(saveBookingResponse.recordId)) {
+    strConfirmationText = BookingConfirmationHelper.sendEmail(saveBookingResponse.recordId, !isExistingBooking, true);
+```
+
+---
+
+### File 3: `force-app/main/default/classes/BookingConfirmationControllerTest.cls`
+- **Location:** Lines 78–105
+- **Action:** Added test coverage for both guards (caller fast-exit and `Test.setCreatedDate` database check).
 - **Code:**
 ```apex
     @isTest
@@ -114,14 +154,16 @@ public static String sendEmail(String opportunityId, Boolean isFirstTime, Boolea
         update acc;
 
         Test.startTest();
-        // 1. Guard check: Existing booking edit from guest/booking engine should be skipped
+        // 1. Guard check: Existing booking edit from guest/booking engine should be skipped (fast-exit)
         String skipResponse = BookingConfirmationHelper.sendEmail(opp.Id, false, true);
         System.assert(skipResponse.contains('Email skipped'), 'Should skip email on edit');
 
-        // 2. Initial creation: Should proceed to send
-        String sendResponse = BookingConfirmationHelper.sendEmail(opp.Id, true, true);
+        // 2. Pre-existing record safeguard: Even if isFirstTime is passed as true, a pre-existing record created in past should be skipped
+        Test.setCreatedDate(opp.Id, Datetime.now().addDays(-2));
+        String pastRecordResponse = BookingConfirmationHelper.sendEmail(opp.Id, true, true);
+        System.assert(pastRecordResponse.contains('Email skipped'), 'Should skip email for pre-existing records even if isFirstTime is true');
 
-        // 3. Manual admin resend: Should proceed even if isFirstTime is false
+        // 3. Manual admin resend: Should proceed even if isFirstTime is false because isGuestUser is false
         String adminResponse = BookingConfirmationHelper.sendEmail(opp.Id, false, false);
 
         // 4. Missing / null ID check
@@ -133,11 +175,11 @@ public static String sendEmail(String opportunityId, Boolean isFirstTime, Boolea
         Test.stopTest();
     }
 ```
-- **Rationale:**  
-  - Validates that booking edits return `'Email skipped...'`.
-  - Validates that new creations and manual admin resends continue to execute.
-  - Covers null and corrupt ID branches.
-  - Ensures test coverage exceeds Salesforce's 75% deployment threshold.
+
+---
+
+### File 4: `manifest/package.xml`
+- **Action:** Added `BookingFormControllerREST` so all impacted classes are packaged together.
 
 ---
 

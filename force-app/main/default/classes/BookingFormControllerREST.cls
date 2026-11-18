@@ -2074,12 +2074,12 @@ Update recordsToUpdate;
         if(paymentProcessed) {
             SavePoint savePointBeforeDML = Database.setSavePoint();
             String strConfirmationText;
-            Boolean isInsert = false;
+            Boolean isExistingBooking = false;
             
             try {
                 if(!String.isBlank(bookingDTORecord.familyDetails.personEmail)) {
-                    if(!String.isBlank(pageParameters.bookingId) && !String.isBlank(bookingDTORecord.id)){
-                        isInsert = true;
+                    if(!String.isBlank(pageParameters.bookingId) || !String.isBlank(bookingDTORecord.id) || (bookingDTORecord.editMode != null && bookingDTORecord.editMode)){
+                        isExistingBooking = true;
                     }
                     
                     saveBookingResponse = insertBookingRecord(pageParameters, bookingDTORecord, strHotelId, stripePaymentInfo, resp);
@@ -2099,7 +2099,7 @@ Update recordsToUpdate;
             System.debug('saveBookingResponse.recordId'+saveBookingResponse.recordId);
             if(!String.isBlank(saveBookingResponse.recordId)) {
                 System.debug('inside mail');
-                strConfirmationText = BookingConfirmationHelper.sendEmail(saveBookingResponse.recordId, !isInsert, true);
+                strConfirmationText = BookingConfirmationHelper.sendEmail(saveBookingResponse.recordId, !isExistingBooking, true);
                 System.debug('strConfirmationText'+strConfirmationText);
                 
                 if(!String.isBlank(strConfirmationText) && strConfirmationText.equalsIgnoreCase('Confirmation Message sent Successfully!')) {  

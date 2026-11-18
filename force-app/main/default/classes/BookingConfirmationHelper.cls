@@ -12,7 +12,7 @@ public class BookingConfirmationHelper {
     public static String sendEmail(String opportunityId, Boolean isFirstTime, Boolean isGuestUser) { 
         system.debug('opportunityId::'+opportunityId);
 
-        // Do not send confirmation email when an existing booking is edited via booking engine
+        // Fast-exit: Do not send confirmation email when an existing booking is edited via booking engine
         if (isFirstTime != null && !isFirstTime && isGuestUser) {
             System.debug('Confirmation email skipped: existing booking edit. OpportunityId: ' + opportunityId);
             return 'Email skipped: Booking edit does not require guest notification.';
@@ -23,13 +23,21 @@ public class BookingConfirmationHelper {
             
             SiteUrl__c siteurl = SiteUrl__c.getInstance();
             if(String.isNotBlank(opportunityId)) {
-                List<Opportunity> bookingRecord = [SELECT Id, Name, Childcare_Manager_Email__c, Auto_Booking_Ref__c,Account.Name, Account.PersonEmail, Hotel__r.Name, Account.Password__c, Account.A_Password__c, Account.Has_user_changed_password__c, O_Booking_Type__c, O_Contact__r.Email 
+                List<Opportunity> bookingRecord = [SELECT Id, Name, Childcare_Manager_Email__c, Auto_Booking_Ref__c,Account.Name, Account.PersonEmail, Hotel__r.Name, Account.Password__c, Account.A_Password__c, Account.Has_user_changed_password__c, O_Booking_Type__c, O_Contact__r.Email, CreatedDate 
                                                     FROM Opportunity 
                                                     WHERE Id = :opportunityId
                                                     LIMIT 1];
                 
                 if(bookingRecord.size() > 0) {
                     System.debug('bookingRecord.get(0).Id::' + bookingRecord.get(0).Id);
+
+                    // Secondary fail-safe: Check database record. If the Opportunity was created in the past, it is an existing booking edit.
+                    Boolean isPreExistingBooking = bookingRecord.get(0).CreatedDate != null 
+                        && bookingRecord.get(0).CreatedDate < Datetime.now().addMinutes(-1);
+                    if (isPreExistingBooking && isGuestUser) {
+                        System.debug('Confirmation email skipped: pre-existing booking record created ' + bookingRecord.get(0).CreatedDate + '. OpportunityId: ' + opportunityId);
+                        return 'Email skipped: Booking edit does not require guest notification.';
+                    }
                     if(String.isNotBlank(bookingRecord.get(0).Account.PersonEmail)) {
                         if(String.isNotBlank(bookingRecord.get(0).Account.A_Password__c)) {
                             String subject = 'Your Childcare Booking ' + bookingRecord.get(0).Auto_Booking_Ref__c;

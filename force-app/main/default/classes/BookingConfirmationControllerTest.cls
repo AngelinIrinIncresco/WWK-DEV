@@ -83,15 +83,18 @@ public class BookingConfirmationControllerTest {
         acc.A_Password__c = 'password123';
         update acc;
 
+        Test.setCreatedDate(opp.Id, Datetime.now().addDays(-2));
+
         Test.startTest();
-        // 1. Guard check: Existing booking edit from guest/booking engine should be skipped
+        // 1. Guard check: Existing booking edit from guest/booking engine should be skipped (fast-exit)
         String skipResponse = BookingConfirmationHelper.sendEmail(opp.Id, false, true);
         System.assert(skipResponse.contains('Email skipped'), 'Should skip email on edit');
 
-        // 2. Initial creation: Should proceed to send
-        String sendResponse = BookingConfirmationHelper.sendEmail(opp.Id, true, true);
+        // 2. Pre-existing record safeguard: Even if isFirstTime is passed as true, a pre-existing record created in past should be skipped
+        String pastRecordResponse = BookingConfirmationHelper.sendEmail(opp.Id, true, true);
+        System.assert(pastRecordResponse.contains('Email skipped'), 'Should skip email for pre-existing records even if isFirstTime is true');
 
-        // 3. Manual admin resend: Should proceed even if isFirstTime is false
+        // 3. Manual admin resend: Should proceed even if isFirstTime is false because isGuestUser is false
         String adminResponse = BookingConfirmationHelper.sendEmail(opp.Id, false, false);
 
         // 4. Missing / null ID check
