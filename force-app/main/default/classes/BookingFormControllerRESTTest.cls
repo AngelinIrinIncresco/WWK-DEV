@@ -3077,6 +3077,36 @@ static void testPost_LoginVerify_Endpoint() {
         'Response body should exist after loginVerify');
 }
 
+@isTest
+static void testFirstTimeLoginWithTemporaryPassword() {
+    Account a = createFamilyAccount('firsttime@test.com', 'tempPass123', false);
+
+    RestRequest req  = new RestRequest();
+    RestResponse res = new RestResponse();
+    req.requestURI  = '/services/apexrest/bookingFormControllerREST/loginVerify';
+    req.httpMethod  = 'POST';
+
+    Map<String, Object> body = new Map<String, Object>{
+        'userName' => '  firsttime@test.com  ',
+        'password' => 'tempPass123'
+    };
+    req.requestBody = Blob.valueOf(JSON.serialize(body));
+    RestContext.request  = req;
+    RestContext.response = res;
+
+    Test.startTest();
+    BookingFormControllerREST.Post();
+    Test.stopTest();
+
+    System.assertNotEquals(null, RestContext.response.responseBody);
+    Map<String, Object> jsonResponse = (Map<String, Object>) JSON.deserializeUntyped(RestContext.response.responseBody.toString());
+    System.assertEquals(true, jsonResponse.get('success'), 'First-time login with temporary password should succeed');
+    System.assertEquals('Password not changed', jsonResponse.get('message'));
+    System.assertEquals(false, jsonResponse.get('hasUserChangedPassword'));
+    System.assertNotEquals(null, jsonResponse.get('session'));
+    System.assertNotEquals(null, jsonResponse.get('accountId'));
+}
+
 // ─────────────────────────────────────────────────────────────────
 // 11. POST /verifyAccount – via Post() dispatch
 // ─────────────────────────────────────────────────────────────────

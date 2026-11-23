@@ -925,6 +925,13 @@ res.responseBody = Blob.valueOf(JSON.serialize(StripePaymentHelper.createPayment
         String displayMessage = '';
         String languageId = ''; // You need to define how you're obtaining langId
         
+        if(String.isNotBlank(userName)) {
+            userName = userName.trim();
+        }
+        if(String.isNotBlank(password)) {
+            password = password.trim();
+        }
+
         if(String.isBlank(userName) || isNotEmailAddress(userName)) {
             displayMessage = Label.Error_UserName;
             res.responseBody = Blob.valueOf(displayMessage);
@@ -956,6 +963,7 @@ res.responseBody = Blob.valueOf(JSON.serialize(StripePaymentHelper.createPayment
                         'firstName' => personAcc.First_Name__c,
                         'lastName' => personAcc.Last_Name__c,
                         'phone' => personAcc.Phone,
+                        'hasUserChangedPassword' => true,
                         'lcaNumber' => personAcc.LCA_Number__c,
                         'lcaExpiryDate' => personAcc.LCAExpiryDate__c
                         };
@@ -964,8 +972,16 @@ res.responseBody = Blob.valueOf(JSON.serialize(StripePaymentHelper.createPayment
                 res.responseBody = Blob.valueOf(jsonString);
             } else {
                 Map<String, Object> jsonResponse = new Map<String, Object>{
-                    'success' => false,
-                        'message' => 'Password not changed'
+                    'success' => true,
+                        'message' => 'Password not changed',
+                        'accountId' => personAcc.Id,
+                        'session' => session,
+                        'firstName' => personAcc.First_Name__c,
+                        'lastName' => personAcc.Last_Name__c,
+                        'phone' => personAcc.Phone,
+                        'hasUserChangedPassword' => false,
+                        'lcaNumber' => personAcc.LCA_Number__c,
+                        'lcaExpiryDate' => personAcc.LCAExpiryDate__c
                         };
                             String jsonString = JSON.serialize(jsonResponse);
                 res.responseBody = Blob.valueOf(jsonString);

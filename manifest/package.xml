@@ -4,6 +4,7 @@
         <members>BookingConfirmationHelper</members>
         <members>BookingConfirmationControllerTest</members>
         <members>BookingFormControllerREST</members>
+        <members>BookingFormControllerRESTTest</members>
         <name>ApexClass</name>
     </types>
     <version>68.0</version>

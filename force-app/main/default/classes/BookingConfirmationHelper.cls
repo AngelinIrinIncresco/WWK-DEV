@@ -41,9 +41,26 @@ public class BookingConfirmationHelper {
                     if(String.isNotBlank(bookingRecord.get(0).Account.PersonEmail)) {
                         if(String.isNotBlank(bookingRecord.get(0).Account.A_Password__c)) {
                             String subject = 'Your Childcare Booking ' + bookingRecord.get(0).Auto_Booking_Ref__c;
+
+                            // Resolve portal login URL dynamically from SiteUrl__c custom setting or active Site context
+                            String baseUrl = '';
+                            if (siteurl != null && String.isNotBlank(siteurl.Url__c)) {
+                                baseUrl = siteurl.Url__c.trim();
+                            } else if (String.isNotBlank(Site.getBaseSecureUrl())) {
+                                baseUrl = Site.getBaseSecureUrl();
+                            } else if (String.isNotBlank(Site.getBaseUrl())) {
+                                baseUrl = Site.getBaseUrl();
+                            } else {
+                                baseUrl = 'https://wwkc.my.salesforce-sites.com/KMSNew/';
+                            }
+                            if (!baseUrl.endsWith('/')) {
+                                baseUrl += '/';
+                            }
+                            String loginPageUrl = baseUrl + 'wwkc_LoginPage#' + bookingRecord.get(0).Id;
+
                         String body = 'Dear ' + bookingRecord.get(0).Account.Name + ',<br/><br/>' +
     'Thank you for your childcare booking at ' + bookingRecord.get(0).Hotel__r.Name + '. Your booking number is ' + bookingRecord.get(0).Auto_Booking_Ref__c + '.<br/><br/>' +
-    'Please visit <a href="https://wwkc.my.salesforce-sites.com/KMSNew/wwkc_LoginPage#' + bookingRecord.get(0).Id + '" target="_blank">MyWK Guest</a> to view your confirmation and manage your booking. For security, you are advised to change your temporary password upon your first login.<br/><br/>';
+    'Please visit <a href="' + loginPageUrl + '" target="_blank">MyWK Guest</a> to view your confirmation and manage your booking. For security, you are advised to change your temporary password upon your first login.<br/><br/>';
 
 // Add username and password if the user has not changed the password
 if (!bookingRecord.get(0).Account.Has_user_changed_password__c) {
@@ -53,10 +70,10 @@ if (!bookingRecord.get(0).Account.Has_user_changed_password__c) {
 
 body += '<b>Next Steps:</b><br/><br/>' +
     '<ul>' +
-        '<li><b>Waiting List:</b><br/>If you have any sessions on a waiting list, we will inform you by email when the session becomes available and we have allocated the session to you. You can always check the status by <a href="https://wwkc.my.salesforce-sites.com/KMSNew/wwkc_LoginPage#' + bookingRecord.get(0).Id + '" target="_blank">logging in to MyWK Guest</a>.' +
+        '<li><b>Waiting List:</b><br/>If you have any sessions on a waiting list, we will inform you by email when the session becomes available and we have allocated the session to you. You can always check the status by <a href="' + loginPageUrl + '" target="_blank">logging in to MyWK Guest</a>.' +
         '<br/>If you remain on the waiting list, please be advised we have a 15-minute policy: if a pre-booked child has not arrived or called within the 15 minutes bracket, the position becomes available first come first serve.</li>' +
         '<br/>' +
-        '<br/><li><b>Changes and Cancellations:</b><br/>To adjust or cancel sessions, <a href="https://wwkc.my.salesforce-sites.com/KMSNew/wwkc_LoginPage#' + bookingRecord.get(0).Id + '" target="_blank">log in to MyWK Guest</a>. Cancellations are free up to 24 hours before the session begins.' +
+        '<br/><li><b>Changes and Cancellations:</b><br/>To adjust or cancel sessions, <a href="' + loginPageUrl + '" target="_blank">log in to MyWK Guest</a>. Cancellations are free up to 24 hours before the session begins.' +
         '<br/>When in resort, if your schedule changes, please cancel any sessions or let the Childcare Manager know, as this helps sessions become available for other guests.</li>' +
     '</ul><br/>' +
     'Need Assistance? For further inquiries, contact our Childcare Manager at ' + bookingRecord.get(0).Childcare_Manager_Email__c + ', quoting your name and reference number '+ bookingRecord.get(0).Auto_Booking_Ref__c +'.<br/><br/>' +

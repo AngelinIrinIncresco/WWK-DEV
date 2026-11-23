@@ -105,6 +105,24 @@ public class BookingConfirmationControllerTest {
         String corruptResponse = BookingConfirmationHelper.sendEmail('invalidId123', true, true);
         Test.stopTest();
     }
+
+    @isTest
+    public static void testBookingConfirmationHelperDynamicSiteUrl() {
+        Opportunity opp = [SELECT Id, AccountId FROM Opportunity LIMIT 1];
+        Account acc = [SELECT Id FROM Account WHERE Id = :opp.AccountId];
+        acc.PersonEmail = 'dynamicurl@test.com';
+        acc.A_Password__c = 'pass12345';
+        acc.Has_user_changed_password__c = false;
+        update acc;
+
+        SiteUrl__c setting = new SiteUrl__c(Url__c = 'https://wwkc--uat.sandbox.my.salesforce-sites.com/KMSNew/');
+        upsert setting;
+
+        Test.startTest();
+        String response = BookingConfirmationHelper.sendEmail(opp.Id, true, true);
+        Test.stopTest();
+        System.assertNotEquals(null, response);
+    }
     
     private static void sendBookingConfirmation(Opportunity booking) {
         ApexPages.currentPage().getParameters().put('id',booking.id);
